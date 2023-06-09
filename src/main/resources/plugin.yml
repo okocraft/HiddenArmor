@@ -1,7 +1,7 @@
 name: HiddenArmor
-version: '${project.version}'
+version: '${projectVersion}'
 main: me.kteq.hiddenarmor.HiddenArmor
-api-version: 1.16
+api-version: "1.20"
 authors: [ Kteq ]
 description: Let players hide their armor and show off their skins
-depend: [ProtocolLib]
+folia-supported: true

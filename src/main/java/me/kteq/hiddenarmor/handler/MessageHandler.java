@@ -1,32 +1,35 @@
 package me.kteq.hiddenarmor.handler;
 
-import me.kteq.hiddenarmor.util.ConfigUtil;
-import me.kteq.hiddenarmor.util.StrUtil;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
+import com.google.common.collect.ImmutableMap;
+import me.kteq.hiddenarmor.HiddenArmor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
-import java.io.File;
-import java.io.InputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MessageHandler {
+
     private static MessageHandler instance;
 
-    private Plugin plugin;
+    private final Map<String, Map<String, String>> localeMap = new ConcurrentHashMap<>();
+
+    private HiddenArmor plugin;
     private String defaultLocale;
     private String prefix = "";
-    private Map<String, FileConfiguration> localeMap;
+    private Map<String, String> defaultMessageMap = Collections.emptyMap();
 
     public static MessageHandler getInstance() {
         if (instance == null) {
@@ -35,80 +38,83 @@ public class MessageHandler {
         return instance;
     }
 
-    public void setup(Plugin plugin, String prefix) {
+    public void setup(HiddenArmor plugin, String prefix) {
         this.plugin = plugin;
-        setPrefix(prefix);
+        this.prefix = prefix;
+
+        try (var inputStream = plugin.getResource("locale/en_us.yml")) {
+            if (inputStream != null) {
+                try (var inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+                    defaultMessageMap = readConfiguration(YamlConfiguration.loadConfiguration(inputStreamReader));
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         reloadLocales();
     }
 
     public void reloadLocales() {
-        setDefaultLocale(plugin.getConfig().getString("locale.default-locale", "en_us").replaceAll("-", "_"));
+        this.defaultLocale = plugin.getHiddenArmorConfig().defaultLocale().replace('-', '_').toLowerCase(Locale.ENGLISH);
 
-        Set<String> includedLocales = new HashSet<>();
-        includedLocales.add("en_us");
-        includedLocales.add("pt_br");
+        var dir = plugin.getDataFolder().toPath().resolve("locale");
 
-        for (String locale : includedLocales) {
-            String path = "locale/" + locale + ".yml";
-            if (!new File(plugin.getDataFolder().getAbsolutePath() + "/" + path).exists()) {
-                plugin.saveResource(path, false);
+        for (String locale : List.of("en_us", "pt_br")) {
+            if (Files.notExists(dir.resolve(locale + ".yml"))) {
+                plugin.saveResource("locale/" + locale + ".yml", false);
             }
         }
 
+        localeMap.clear();
 
-
-        localeMap = new HashMap<>();
-        File localeFolder = new File(plugin.getDataFolder().getAbsolutePath() + "/locale");
-        for (File file : localeFolder.listFiles()) {
-            FileConfiguration localeYaml = ConfigUtil.getYamlConfiguration(file);
-            localeMap.put(file.getName().replaceAll(".yml", ""), localeYaml);
+        try (var list = Files.list(dir)) {
+            list.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".yml"))
+                    .forEach(path -> {
+                        FileConfiguration localeYaml = YamlConfiguration.loadConfiguration(path.toFile());
+                        localeMap.put(path.getFileName().toString().replace(".yml", ""), readConfiguration(localeYaml));
+                    });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public void setDefaultLocale(String defaultLocale) {
-        this.defaultLocale = defaultLocale;
-    }
-
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
-
     public void message(CommandSender sender, String message) {
-        message(ChatMessageType.CHAT, sender, message, false);
+        message(sender, message, false);
     }
 
     public void message(CommandSender sender, String message, boolean prefix) {
-        message(ChatMessageType.CHAT, sender, message, prefix);
+        message(sender, message, prefix, new HashMap<>());
     }
 
     public void message(CommandSender sender, String message, boolean prefix, Map<String, String> placeholderMap) {
-        message(ChatMessageType.CHAT, sender, message, prefix, placeholderMap);
+        var replaced = replacePlaceholders(sender, message, prefix, placeholderMap);
+        sender.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(replaced));
     }
 
-    public void message(ChatMessageType messageType, CommandSender sender, String message, boolean prefix) {
-        message(messageType, sender, message, prefix, new HashMap<>());
+    public void actionBar(CommandSender sender, String message, boolean prefix, Map<String, String> placeholderMap) {
+        if (sender instanceof Player player) {
+            var replaced = replacePlaceholders(player, message, prefix, placeholderMap);
+            player.sendActionBar(LegacyComponentSerializer.legacyAmpersand().deserialize(replaced));
+        }
     }
 
-    public void message(ChatMessageType messageType, CommandSender sender, String message, boolean prefix, Map<String, String> placeholderMap) {
+    private String replacePlaceholders(CommandSender sender, String message, boolean prefix, Map<String, String> placeholderMap) {
         message = replaceHoldersFromConfig(sender, message);
 
         for (String placeholder : placeholderMap.keySet()) {
             String value = placeholderMap.get(placeholder);
             value = replaceHoldersFromConfig(sender, value);
 
-            message = message.replaceAll("%" + placeholder + "%", value);
+            message = message.replace("%" + placeholder + "%", value);
         }
 
         if (prefix) {
             message = this.prefix + message;
         }
 
-        if (sender instanceof Player) {
-            Player player = (Player) sender;
-            player.spigot().sendMessage(messageType, new TextComponent(StrUtil.color(message)));
-        } else if (sender instanceof ConsoleCommandSender && messageType.equals(ChatMessageType.CHAT)) {
-            sender.sendMessage(StrUtil.color(message));
-        }
+        return message;
     }
 
     private String replaceHoldersFromConfig(CommandSender sender, String message) {
@@ -117,7 +123,7 @@ public class MessageHandler {
             String localizedMessage = getLocalizedMessage(sender, string);
 
             if (localizedMessage != null) {
-                message = message.replaceAll("%" + string + "%", localizedMessage);
+                message = message.replace("%" + string + "%", localizedMessage);
             }
         }
 
@@ -126,26 +132,23 @@ public class MessageHandler {
 
     private String getLocalizedMessage(CommandSender sender, String messageKey) {
         String locale;
-        if (sender instanceof Player) {
-            Player player = (Player) sender;
-            locale = player.getLocale();
+
+        if (sender instanceof Player player) {
+            locale = player.locale().toString().toLowerCase();
         } else {
             locale = defaultLocale;
         }
-        FileConfiguration localeYaml = localeMap.get(locale);
-        if (localeYaml == null) {
-            localeYaml = localeMap.get(defaultLocale);
-            if (localeYaml == null) {
-                localeYaml = getDefaultResourceLocale();
-            }
-        }
 
-        return localeYaml.getString(messageKey, getDefaultResourceLocale().getString(messageKey));
+        return localeMap.getOrDefault(locale, defaultMessageMap).getOrDefault(messageKey, messageKey);
     }
 
-    private FileConfiguration getDefaultResourceLocale() {
-        InputStream inputStream = plugin.getResource("locale/en_us.yml");
-        InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-        return YamlConfiguration.loadConfiguration(inputStreamReader);
+    private Map<String, String> readConfiguration(ConfigurationSection source) {
+        var builder = ImmutableMap.<String, String>builder();
+
+        for (var key : source.getKeys(false)) {
+            builder.put(key, source.getString(key, key));
+        }
+
+        return builder.build();
     }
 }

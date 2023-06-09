@@ -1,35 +1,27 @@
 package me.kteq.hiddenarmor.listener;
 
 import me.kteq.hiddenarmor.HiddenArmor;
-import me.kteq.hiddenarmor.handler.ArmorPacketHandler;
-import me.kteq.hiddenarmor.manager.HiddenArmorManager;
-import me.kteq.hiddenarmor.util.EventUtil;
+import me.kteq.hiddenarmor.handler.ArmorUpdater;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class PotionEffectListener implements Listener {
-    HiddenArmor plugin;
-    HiddenArmorManager hiddenArmorManager;
+
+    private final HiddenArmor plugin;
 
     public PotionEffectListener(HiddenArmor plugin) {
         this.plugin = plugin;
-        this.hiddenArmorManager = plugin.getHiddenArmorManager();
-        EventUtil.register(this, plugin);
+        plugin.registerListener(this);
     }
 
     @EventHandler
     public void onPlayerInvisibleEffect(EntityPotionEffectEvent event) {
-        if (!(event.getEntity() instanceof Player)) return;
-        Player player = (Player) event.getEntity();
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
 
-        new BukkitRunnable(){
-            @Override
-            public void run() {
-                ArmorPacketHandler.getInstance().updatePlayer(player);
-            }
-        }.runTaskLater(plugin, 2L);
+        plugin.runPlayerTask(player, ArmorUpdater::updatePlayer);
     }
 }

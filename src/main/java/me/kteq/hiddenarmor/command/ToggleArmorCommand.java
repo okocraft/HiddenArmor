@@ -1,35 +1,31 @@
 package me.kteq.hiddenarmor.command;
 
 import me.kteq.hiddenarmor.HiddenArmor;
-import me.kteq.hiddenarmor.handler.ArmorPacketHandler;
-import me.kteq.hiddenarmor.manager.HiddenArmorManager;
 import me.kteq.hiddenarmor.handler.MessageHandler;
-import me.kteq.hiddenarmor.util.CommandUtil;
-import net.md_5.bungee.api.ChatMessageType;
+import me.kteq.hiddenarmor.manager.HiddenArmorManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ToggleArmorCommand {
-    HiddenArmor plugin;
-    HiddenArmorManager hiddenArmorManager;
+    private final HiddenArmor plugin;
+    private final HiddenArmorManager hiddenArmorManager;
 
-    public ToggleArmorCommand(HiddenArmor plugin){
+    public ToggleArmorCommand(HiddenArmor plugin) {
         this.plugin = plugin;
         this.hiddenArmorManager = plugin.getHiddenArmorManager();
-        FileConfiguration config = plugin.getConfig();
-        new CommandUtil(this.plugin,"togglearmor", 0,1, false, config.getBoolean("default-permissions.toggle")){
+
+        new AbstractCommand(this.plugin, "togglearmor", 0, 1, false, plugin.getHiddenArmorConfig().toggleDefaultPermission()) {
 
             @Override
             public void sendUsage(CommandSender sender) {
                 MessageHandler messageHandler = MessageHandler.getInstance();
                 Map<String, String> placeholderMap = new HashMap<>();
-                if(sender instanceof Player) {
+                if (sender instanceof Player) {
                     String usage = "/togglearmor" + (canUseArg(sender, "other") ? " [%player%]" : "");
                     placeholderMap.put("usage", usage);
                 } else {
@@ -42,16 +38,18 @@ public class ToggleArmorCommand {
             public boolean onCommand(CommandSender sender, String[] arguments) {
                 Player player;
                 MessageHandler messageHandler = MessageHandler.getInstance();
-                if(arguments.length == 1) {
-                    if(!canUseArg(sender, "other") && !config.getBoolean("default-permissions.toggle-other")) return false;
+                if (arguments.length == 1) {
+                    if (!canUseArg(sender, "other") && !plugin.getHiddenArmorConfig().toggleOtherDefaultPermission()) {
+                        return false;
+                    }
                     String playerName = arguments[0];
                     player = Bukkit.getPlayer(playerName);
 
-                    if(player == null){
+                    if (player == null) {
                         messageHandler.message(sender, "%player-not-found%");
                         return true;
                     }
-                }else {
+                } else {
                     if (sender instanceof ConsoleCommandSender) {
                         messageHandler.message(sender, "%console-togglearmor-warning%");
                         sendUsage(sender);
@@ -63,7 +61,7 @@ public class ToggleArmorCommand {
 
                 hiddenArmorManager.togglePlayer(player, true);
 
-                if(!player.equals(sender)) {
+                if (!player.equals(sender)) {
                     Map<String, String> placeholderMap = new HashMap<>();
                     placeholderMap.put("visibility", hiddenArmorManager.isEnabled(player) ? "%visibility-hidden%" : "%visibility-shown%");
                     placeholderMap.put("player", player.getName());

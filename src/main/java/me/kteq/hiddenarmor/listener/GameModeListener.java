@@ -1,44 +1,41 @@
 package me.kteq.hiddenarmor.listener;
 
 import me.kteq.hiddenarmor.HiddenArmor;
-import me.kteq.hiddenarmor.handler.ArmorPacketHandler;
+import me.kteq.hiddenarmor.handler.ArmorUpdater;
 import me.kteq.hiddenarmor.manager.HiddenArmorManager;
-import me.kteq.hiddenarmor.util.EventUtil;
 import org.bukkit.GameMode;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.*;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.event.player.PlayerGameModeChangeEvent;
 
 public class GameModeListener implements Listener {
-    HiddenArmor plugin;
-    HiddenArmorManager hiddenArmorManager;
 
-    public GameModeListener(HiddenArmor plugin){
+    private final HiddenArmor plugin;
+    private final HiddenArmorManager hiddenArmorManager;
+
+    public GameModeListener(HiddenArmor plugin) {
         this.plugin = plugin;
         this.hiddenArmorManager = plugin.getHiddenArmorManager();
-        EventUtil.register(this, plugin);
+        plugin.registerListener(this);
     }
 
     @EventHandler
-    public void onGameModeChange(PlayerGameModeChangeEvent event){
-        if(!hiddenArmorManager.isEnabled(event.getPlayer())) return;
-        if(event.getNewGameMode().equals(GameMode.CREATIVE)) {
-            hiddenArmorManager.disablePlayer(event.getPlayer(), false);
-            ArmorPacketHandler.getInstance().updatePlayer(event.getPlayer());
+    public void onGameModeChange(PlayerGameModeChangeEvent event) {
+        if (!hiddenArmorManager.isEnabled(event.getPlayer())) {
+            return;
         }
 
-        new BukkitRunnable(){
-            @Override
-            public void run() {
-                if (event.getNewGameMode().equals(GameMode.CREATIVE)) {
-                    hiddenArmorManager.enablePlayer(event.getPlayer(), false);
-                } else {
-                    ArmorPacketHandler.getInstance().updatePlayer(event.getPlayer());
-                }
+        if (event.getNewGameMode().equals(GameMode.CREATIVE)) {
+            hiddenArmorManager.disablePlayer(event.getPlayer(), false);
+            ArmorUpdater.updatePlayer(event.getPlayer());
+        }
+
+        plugin.runPlayerTask(event.getPlayer(), player -> {
+            if (event.getNewGameMode().equals(GameMode.CREATIVE)) {
+                hiddenArmorManager.enablePlayer(player, false);
+            } else {
+                ArmorUpdater.updatePlayer(player);
             }
-        }.runTaskLater(plugin, 1L);
+        });
     }
-
-
 }
