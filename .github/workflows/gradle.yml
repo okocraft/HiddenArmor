@@ -1,0 +1,9 @@
+name: Build
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    uses: okocraft/workflows/.github/workflows/gradle.yml@v1
+    with:
+      java-version: '17'
+      package-name: HiddenArmor-Build-${{ github.run_number }}
