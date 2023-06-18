@@ -1,7 +1,6 @@
 package me.kteq.hiddenarmor.listener.packet;
 
 import com.destroystokyo.paper.MaterialTags;
-import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Pair;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,9 +21,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.inventory.InventoryMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -36,7 +32,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -240,21 +235,14 @@ public class PacketHandler extends ChannelDuplexHandler {
         ItemMeta itemMeta = itemStack.getItemMeta();
 
         if (itemStack.getType().equals(Material.ELYTRA)) {
-            Map<Enchantment, Integer> encs = itemMeta.getEnchants();
-            Multimap<Attribute, AttributeModifier> attrs = itemMeta.getAttributeModifiers();
-            int damage = ((Damageable) itemMeta).getDamage();
-
             var result = new ItemStack(Material.ELYTRA);
 
             result.editMeta(Damageable.class, meta -> {
-                for (Enchantment key : encs.keySet()) {
-                    meta.addEnchant(key, encs.get(key), true);
-                }
-
-                meta.setAttributeModifiers(attrs);
-                meta.setDamage(damage);
                 meta.displayName(itemMeta.displayName());
                 meta.lore(itemMeta.lore());
+                meta.setDamage(((Damageable) itemMeta).getDamage());
+                itemMeta.getEnchants().forEach((enchantment, level) -> meta.addEnchant(enchantment, level, true));
+                meta.setAttributeModifiers(itemMeta.getAttributeModifiers());
             });
 
             return result;
@@ -284,12 +272,14 @@ public class PacketHandler extends ChannelDuplexHandler {
                         )
                 );
                 meta.lore(lore);
+                itemMeta.getEnchants().forEach((enchantment, level) -> meta.addEnchant(enchantment, level, true));
             });
 
             return newItem;
         } else {
-            itemStack.editMeta(meta -> meta.lore(lore));
-            return itemStack;
+            var result = itemStack.clone();
+            result.editMeta(meta -> meta.lore(lore));
+            return result;
         }
     }
 
