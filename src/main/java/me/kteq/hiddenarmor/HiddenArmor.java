@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 public final class HiddenArmor extends JavaPlugin {
 
-    private static final boolean FOLIA;
+    private static final boolean MODERN_SCHEDULER;
 
     static {
         boolean folia = false;
@@ -34,7 +34,7 @@ public final class HiddenArmor extends JavaPlugin {
         } catch (NoSuchMethodException ignored) {
         }
 
-        FOLIA = folia;
+        MODERN_SCHEDULER = folia;
     }
 
     private final AtomicReference<Config> configReference = new AtomicReference<>(Config.createDefault());
@@ -104,9 +104,8 @@ public final class HiddenArmor extends JavaPlugin {
     }
 
     public void runPlayerTask(Player player, Consumer<Player> task) {
-        if (FOLIA) {
-            //player.getScheduler().runDelayed(this, $ -> task.accept(player), null, 1L);
-            throw new UnsupportedOperationException(); // FIXME: folia
+        if (MODERN_SCHEDULER) {
+            player.getScheduler().runDelayed(this, $ -> task.accept(player), null, 1L);
         } else {
             getServer().getScheduler().runTaskLater(this, () -> task.accept(player), 1L);
         }
