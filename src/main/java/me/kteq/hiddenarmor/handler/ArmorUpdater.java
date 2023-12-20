@@ -30,7 +30,7 @@ public final class ArmorUpdater {
         }
 
         for (var viewer : player.getWorld().getPlayers()) {
-            if (!viewer.equals(player) && player.getTrackedPlayers().contains(viewer)) {
+            if (!viewer.equals(player) && player.getTrackedBy().contains(viewer)) {
                 viewer.sendEquipmentChange(player, enumMap);
             }
         }
