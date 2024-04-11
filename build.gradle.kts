@@ -1,7 +1,7 @@
 plugins {
     `java-library`
     `maven-publish`
-    id("io.papermc.paperweight.userdev") version "1.5.13"
+    id("io.papermc.paperweight.userdev") version "1.5.15"
 }
 
 group = "me.kteq"
