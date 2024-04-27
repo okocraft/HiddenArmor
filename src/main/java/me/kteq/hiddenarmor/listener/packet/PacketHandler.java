@@ -56,7 +56,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             case CHEST -> 3;
             case LEGS -> 4;
             case FEET -> 5;
-            case HAND, OFF_HAND -> throw new IllegalArgumentException();
+            case HAND, OFF_HAND, BODY -> throw new IllegalArgumentException();
         };
 
         int packetIndex = switch (equipmentSlot) {
@@ -64,7 +64,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             case CHEST -> 6;
             case LEGS -> 7;
             case FEET -> 8;
-            case HAND, OFF_HAND -> throw new IllegalArgumentException();
+            case HAND, OFF_HAND, BODY -> throw new IllegalArgumentException();
         };
 
         var serverPlayer = MinecraftServer.getServer().getPlayerList().getPlayer(player.getUniqueId());
@@ -101,19 +101,20 @@ public class PacketHandler extends ChannelDuplexHandler {
             newPacket = handlePacket(packet);
         } else if (msg instanceof ClientboundContainerSetSlotPacket packet) {
             newPacket = handlePacket(packet);
-        } else if (msg instanceof ClientboundBundlePacket packet && packet.subPackets() instanceof List<Packet<ClientGamePacketListener>> subPackets) { // See ServerEntity#addPairing
-            int index = 0;
-
-            for (var sub : packet.subPackets()) {
-                if (sub instanceof ClientboundSetEquipmentPacket subPacket) {
-                    var newSubPacket = handlePacket(subPacket);
+        } else if (msg instanceof ClientboundBundlePacket packet ) { // See ServerEntity#addPairing
+            List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
+            packet.subPackets().forEach(subPacket -> {
+                if (subPacket instanceof ClientboundSetEquipmentPacket setEquipmentPacket) {
+                    var newSubPacket = handlePacket(setEquipmentPacket);
 
                     if (newSubPacket != null) {
-                        subPackets.set(index, newSubPacket);
+                        packets.add(newSubPacket);
+                        return;
                     }
                 }
-                index++;
-            }
+                packets.add(subPacket);
+            });
+            newPacket = new ClientboundBundlePacket(packets);
         }
 
         super.write(ctx, newPacket != null ? newPacket : msg, promise);
@@ -319,7 +320,7 @@ public class PacketHandler extends ChannelDuplexHandler {
 
         return Component.translatable()
                 .key("item.durability")
-                .args(
+                .arguments(
                         Component.text(maxDurability - meta.getDamage()),
                         Component.text(maxDurability)
                 ).style(Style.style(NamedTextColor.WHITE, TextDecoration.ITALIC.withState(false)))
