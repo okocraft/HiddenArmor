@@ -23,6 +23,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -251,7 +252,7 @@ public class PacketHandler extends ChannelDuplexHandler {
 
         var lore = new ArrayList<>(Objects.requireNonNullElse(itemMeta.lore(), Collections.emptyList()));
 
-        var durability = getPieceDurability(itemStack);
+        var durability = getPieceDurability(itemStack.getType().getMaxDurability(), itemMeta);
 
         if (durability != null) {
             lore.add(durability);
@@ -262,18 +263,18 @@ public class PacketHandler extends ChannelDuplexHandler {
         if (button != null) {
             var newItem = new ItemStack(button);
 
-            newItem.editMeta(meta -> {
-                meta.displayName(
+            newItem.editMeta(m -> {
+                m.displayName(
                         Objects.requireNonNullElseGet(
-                                itemStack.displayName(),
+                                itemMeta.displayName(),
                                 () -> Component.translatable()
                                         .key(itemStack.getType().translationKey())
-                                        .style(Style.style(itemStack.getRarity().getColor(), TextDecoration.ITALIC.withState(false)))
+                                        .style(Style.style((itemMeta.hasRarity() ? itemMeta.getRarity() : ItemRarity.COMMON).color() , TextDecoration.ITALIC.withState(false)))
                                         .build()
                         )
                 );
-                meta.lore(lore);
-                itemMeta.getEnchants().forEach((enchantment, level) -> meta.addEnchant(enchantment, level, true));
+                m.lore(lore);
+                itemMeta.getEnchants().forEach((enchantment, level) -> m.addEnchant(enchantment, level, true));
             });
 
             return newItem;
@@ -307,14 +308,8 @@ public class PacketHandler extends ChannelDuplexHandler {
         return null;
     }
 
-    private Component getPieceDurability(ItemStack itemStack) {
-        if (!(itemStack.getItemMeta() instanceof Damageable meta)) {
-            return null;
-        }
-
-        int maxDurability = itemStack.getType().getMaxDurability();
-
-        if (maxDurability == 0) {
+    private Component getPieceDurability(int maxDurability, ItemMeta m) {
+        if (!(m instanceof Damageable meta)) {
             return null;
         }
 

@@ -16,7 +16,7 @@ public final class ArmorUpdater {
 
     public static void updateSelf(Player player) {
         for (var slot : EquipmentSlot.values()) {
-            if (slot.isArmor()) {
+            if (slot.isArmor() && slot != EquipmentSlot.BODY) {
                 PacketHandler.sendContainerSetSlotPacket(player, slot);
             }
         }
@@ -26,7 +26,9 @@ public final class ArmorUpdater {
         var enumMap = new EnumMap<EquipmentSlot, ItemStack>(EquipmentSlot.class);
 
         for (var slot : EquipmentSlot.values()) {
-            enumMap.put(slot, player.getInventory().getItem(slot));
+            if (slot.isArmor() && slot != EquipmentSlot.BODY) {
+                enumMap.put(slot, player.getInventory().getItem(slot));
+            }
         }
 
         for (var viewer : player.getWorld().getPlayers()) {
