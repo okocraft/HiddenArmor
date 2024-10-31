@@ -21,6 +21,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.inventory.InventoryMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemRarity;
@@ -29,7 +30,6 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,17 +38,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class PacketHandler extends ChannelDuplexHandler {
-
-    private static final Method AS_NMS_COPY;
-
-    static {
-        try {
-            var craftItemStackClass = Class.forName(Bukkit.getServer().getClass().getPackageName() + ".inventory.CraftItemStack");
-            AS_NMS_COPY = craftItemStackClass.getDeclaredMethod("asNMSCopy", ItemStack.class);
-        } catch (Exception e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
 
     public static void sendContainerSetSlotPacket(Player player, EquipmentSlot equipmentSlot) {
         // See CraftInventoryPlayer#getHelmet ~ #getBoots
@@ -177,12 +166,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             var item = packet.getItems().get(i);
 
             if (InventoryMenu.ARMOR_SLOT_START <= i && i < InventoryMenu.ARMOR_SLOT_END) {
-                try {
-                    copied.add(i, (net.minecraft.world.item.ItemStack) AS_NMS_COPY.invoke(null, getHiddenArmorPiece(item.asBukkitCopy())));
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    e.printStackTrace();
-                    return null;
-                }
+                copied.add(i, CraftItemStack.asNMSCopy(getHiddenArmorPiece(item.asBukkitCopy())));
             } else {
                 copied.add(i, item);
             }
@@ -209,17 +193,12 @@ public class PacketHandler extends ChannelDuplexHandler {
             return null;
         }
 
-        try {
-            return new ClientboundContainerSetSlotPacket(
-                    packet.getContainerId(),
-                    packet.getStateId(),
-                    packet.getSlot(),
-                    (net.minecraft.world.item.ItemStack) AS_NMS_COPY.invoke(null, getHiddenArmorPiece(packet.getItem().asBukkitCopy()))
-            );
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return new ClientboundContainerSetSlotPacket(
+                packet.getContainerId(),
+                packet.getStateId(),
+                packet.getSlot(),
+                CraftItemStack.asNMSCopy(getHiddenArmorPiece(packet.getItem().asBukkitCopy()))
+        );
     }
 
     private boolean ignore(ItemStack itemStack) {
