@@ -2,6 +2,7 @@ plugins {
     `java-library`
     `maven-publish`
     id("io.papermc.paperweight.userdev") version "1.7.4"
+    id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
 group = "me.kteq"
@@ -41,5 +42,11 @@ tasks {
 
     jar {
         archiveFileName = "HiddenArmor-${fullVersion}.jar"
+    }
+
+    runServer {
+        minecraftVersion(mcVersion)
+        systemProperty("com.mojang.eula.agree", "true")
+        systemProperty("paper.disablePluginRemapping", "true")
     }
 }
