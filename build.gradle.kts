@@ -1,7 +1,7 @@
 plugins {
     `java-library`
     `maven-publish`
-    id("io.papermc.paperweight.userdev") version "1.7.7"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.14"
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
