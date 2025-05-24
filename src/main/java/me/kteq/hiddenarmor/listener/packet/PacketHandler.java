@@ -45,7 +45,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             case CHEST -> 3;
             case LEGS -> 4;
             case FEET -> 5;
-            case HAND, OFF_HAND, BODY -> throw new IllegalArgumentException();
+            case HAND, OFF_HAND, BODY, SADDLE -> throw new IllegalArgumentException();
         };
 
         int packetIndex = switch (equipmentSlot) {
@@ -53,7 +53,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             case CHEST -> 6;
             case LEGS -> 7;
             case FEET -> 8;
-            case HAND, OFF_HAND, BODY -> throw new IllegalArgumentException();
+            case HAND, OFF_HAND, BODY, SADDLE -> throw new IllegalArgumentException();
         };
 
         var serverPlayer = MinecraftServer.getServer().getPlayerList().getPlayer(player.getUniqueId());
@@ -155,14 +155,14 @@ public class PacketHandler extends ChannelDuplexHandler {
 
         if (player == null ||
                 !plugin.getHiddenArmorManager().isArmorHidden(player.getBukkitEntity()) ||
-                packet.getContainerId() != InventoryMenu.CONTAINER_ID) {
+                packet.containerId() != InventoryMenu.CONTAINER_ID) {
             return null;
         }
 
-        var copied = NonNullList.<net.minecraft.world.item.ItemStack>createWithCapacity(packet.getItems().size());
+        var copied = NonNullList.<net.minecraft.world.item.ItemStack>createWithCapacity(packet.items().size());
 
-        for (int i = 0; i < packet.getItems().size(); i++) {
-            var item = packet.getItems().get(i);
+        for (int i = 0; i < packet.items().size(); i++) {
+            var item = packet.items().get(i);
 
             if (InventoryMenu.ARMOR_SLOT_START <= i && i < InventoryMenu.ARMOR_SLOT_END) {
                 copied.add(i, CraftItemStack.asNMSCopy(getHiddenArmorPiece(item.asBukkitCopy())));
@@ -172,10 +172,10 @@ public class PacketHandler extends ChannelDuplexHandler {
         }
 
         return new ClientboundContainerSetContentPacket(
-                packet.getContainerId(),
-                packet.getStateId(),
+                InventoryMenu.CONTAINER_ID,
+                packet.stateId(),
                 copied,
-                packet.getCarriedItem()
+                packet.carriedItem()
         );
     }
 
