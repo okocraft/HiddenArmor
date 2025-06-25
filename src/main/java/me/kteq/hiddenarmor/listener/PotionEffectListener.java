@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
+import org.bukkit.potion.PotionEffectType;
 
 public class PotionEffectListener implements Listener {
 
@@ -18,7 +19,7 @@ public class PotionEffectListener implements Listener {
 
     @EventHandler
     public void onPlayerInvisibleEffect(EntityPotionEffectEvent event) {
-        if (!(event.getEntity() instanceof Player player)) {
+        if (!(event.getEntity() instanceof Player player) || event.getModifiedType() != PotionEffectType.INVISIBILITY) {
             return;
         }
 
