@@ -1,11 +1,13 @@
 package me.kteq.hiddenarmor.listener;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.Equippable;
 import me.kteq.hiddenarmor.HiddenArmor;
 import me.kteq.hiddenarmor.handler.ArmorUpdater;
 import me.kteq.hiddenarmor.manager.HiddenArmorManager;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -22,26 +24,28 @@ public class InventoryShiftClickListener implements Listener {
         plugin.registerListener(this);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onShiftClickArmor(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player) ||
-                !hiddenArmorManager.isArmorHidden(player) ||
-                !(event.getClickedInventory() instanceof PlayerInventory) ||
-                !event.isShiftClick()
+            !hiddenArmorManager.isArmorHidden(player) ||
+            !(event.getClickedInventory() instanceof PlayerInventory) ||
+            !event.isShiftClick()
         ) {
             return;
         }
 
-        var inv = player.getInventory();
-        ItemStack armor = event.getCurrentItem();
+        ItemStack item = event.getCurrentItem();
+        if (item == null || item.isEmpty()) {
+            return;
+        }
 
-        if (armor == null) return;
+        Equippable equippable = item.getData(DataComponentTypes.EQUIPPABLE);
+        if (equippable == null) {
+            return;
+        }
 
-        if ((armor.getType().toString().endsWith("_HELMET") && inv.getHelmet() == null) ||
-                ((armor.getType().toString().endsWith("_CHESTPLATE") || armor.getType().equals(Material.ELYTRA)) && inv.getChestplate() == null) ||
-                (armor.getType().toString().endsWith("_LEGGINGS") && inv.getLeggings() == null) ||
-                (armor.getType().toString().endsWith("_BOOTS") && inv.getBoots() == null)) {
-            plugin.runPlayerTask(player, ArmorUpdater::updateSelf);
+        if (player.getInventory().getItem(equippable.slot()).isEmpty()) {
+            this.plugin.runPlayerTask(player, ArmorUpdater::updateSelf);
         }
     }
 }
