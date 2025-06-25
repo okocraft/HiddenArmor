@@ -21,6 +21,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.inventory.InventoryMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.craftbukkit.CraftEquipmentSlot;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -39,15 +40,6 @@ import java.util.stream.Collectors;
 public class PacketHandler extends ChannelDuplexHandler {
 
     public static void sendContainerSetSlotPacket(Player player, EquipmentSlot equipmentSlot) {
-        // See CraftInventoryPlayer#getHelmet ~ #getBoots
-        int index = player.getInventory().getSize() - switch (equipmentSlot) {
-            case HEAD -> 2;
-            case CHEST -> 3;
-            case LEGS -> 4;
-            case FEET -> 5;
-            case HAND, OFF_HAND, BODY, SADDLE -> throw new IllegalArgumentException();
-        };
-
         int packetIndex = switch (equipmentSlot) {
             case HEAD -> 5;
             case CHEST -> 6;
@@ -67,7 +59,7 @@ public class PacketHandler extends ChannelDuplexHandler {
                         serverPlayer.inventoryMenu.containerId,
                         serverPlayer.inventoryMenu.incrementStateId(),
                         packetIndex,
-                        serverPlayer.getInventory().getItem(index)
+                        serverPlayer.getInventory().equipment.get(CraftEquipmentSlot.getNMS(equipmentSlot))
                 )
         );
     }
@@ -90,7 +82,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             newPacket = handlePacket(packet);
         } else if (msg instanceof ClientboundContainerSetSlotPacket packet) {
             newPacket = handlePacket(packet);
-        } else if (msg instanceof ClientboundBundlePacket packet ) { // See ServerEntity#addPairing
+        } else if (msg instanceof ClientboundBundlePacket packet) { // See ServerEntity#addPairing
             List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
             packet.subPackets().forEach(subPacket -> {
                 if (subPacket instanceof ClientboundSetEquipmentPacket setEquipmentPacket) {

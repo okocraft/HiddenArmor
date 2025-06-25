@@ -9,26 +9,24 @@ import java.util.EnumMap;
 
 public final class ArmorUpdater {
 
+    private static final EquipmentSlot[] HIDEABLE_SLOTS = new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
+
     public static void updatePlayer(Player player) {
         updateSelf(player);
         updateOthers(player);
     }
 
     public static void updateSelf(Player player) {
-        for (var slot : EquipmentSlot.values()) {
-            if (slot.isArmor() && slot != EquipmentSlot.BODY) {
-                PacketHandler.sendContainerSetSlotPacket(player, slot);
-            }
+        for (var slot : HIDEABLE_SLOTS) {
+            PacketHandler.sendContainerSetSlotPacket(player, slot);
         }
     }
 
     public static void updateOthers(Player player) {
         var enumMap = new EnumMap<EquipmentSlot, ItemStack>(EquipmentSlot.class);
 
-        for (var slot : EquipmentSlot.values()) {
-            if (slot.isArmor() && slot != EquipmentSlot.BODY) {
-                enumMap.put(slot, player.getInventory().getItem(slot));
-            }
+        for (var slot : HIDEABLE_SLOTS) {
+            enumMap.put(slot, player.getInventory().getItem(slot));
         }
 
         for (var viewer : player.getWorld().getPlayers()) {
