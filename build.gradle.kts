@@ -8,7 +8,7 @@ plugins {
 group = "me.kteq"
 version = "1.1.0"
 
-val mcVersion = "1.21.6"
+val mcVersion = "1.21.7"
 val fullVersion = "${version}-mc${mcVersion}"
 
 repositories {
