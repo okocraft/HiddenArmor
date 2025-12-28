@@ -12,14 +12,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ToggleArmorCommand {
-    private final HiddenArmor plugin;
     private final HiddenArmorManager hiddenArmorManager;
 
     public ToggleArmorCommand(HiddenArmor plugin) {
-        this.plugin = plugin;
         this.hiddenArmorManager = plugin.getHiddenArmorManager();
 
-        new AbstractCommand(this.plugin, "togglearmor", 0, 1, false, plugin.getHiddenArmorConfig().toggleDefaultPermission()) {
+        new AbstractCommand(plugin, "togglearmor", 0, 1, false, plugin.getHiddenArmorConfig().toggleDefaultPermission()) {
 
             @Override
             public void sendUsage(CommandSender sender) {
