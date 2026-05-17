@@ -1,40 +1,25 @@
 plugins {
     `java-library`
-    `maven-publish`
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
-    id("xyz.jpenilla.run-paper") version "3.0.2"
+    alias(libs.plugins.paperweight.userdev)
+    alias(libs.plugins.run.paper)
+    alias(libs.plugins.jcommon)
 }
 
 group = "me.kteq"
 version = "1.1.0"
-
-val mcVersion = "1.21.11"
+val mcVersion = libs.versions.paper.get().replaceAfter(".build", "").removeSuffix(".build")
 val fullVersion = "${version}-mc${mcVersion}"
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    paperweight.paperDevBundle("$mcVersion-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle(libs.versions.paper.get())
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+jcommon {
+    javaVersion = JavaVersion.VERSION_25
 }
-
-paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
 
 tasks {
-    compileJava {
-        options.encoding = Charsets.UTF_8.name()
-        options.release.set(21)
-    }
-
     processResources {
-        filteringCharset = Charsets.UTF_8.name()
-
         filesMatching(listOf("plugin.yml")) {
             expand("projectVersion" to fullVersion)
         }
