@@ -114,7 +114,7 @@ public class PacketHandler extends ChannelDuplexHandler {
                             return pair;
                         }
 
-                        var bukkitItem = pair.getSecond().getBukkitStack();
+                        var bukkitItem = CraftItemStack.asBukkitMirror(pair.getSecond());
 
                         if (bukkitItem.getType() == Material.ELYTRA
                                 && (plugin.getHiddenArmorConfig().ignoreElytra() || target.isGliding())
@@ -149,7 +149,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             net.minecraft.world.item.ItemStack item = packet.items().get(i);
 
             if (InventoryMenu.ARMOR_SLOT_START <= i && i < InventoryMenu.ARMOR_SLOT_END) {
-                ItemStack bukkitItem = item.asBukkitMirror();
+                ItemStack bukkitItem = CraftItemStack.asBukkitMirror(item);
 
                 if (ignore(bukkitItem)) {
                     copied.add(i, item);
@@ -184,7 +184,7 @@ public class PacketHandler extends ChannelDuplexHandler {
             return null;
         }
 
-        ItemStack bukkitItem = packet.getItem().asBukkitMirror();
+        ItemStack bukkitItem = CraftItemStack.asBukkitMirror(packet.getItem());
         if (ignore(bukkitItem)) {
             return null;
         }
